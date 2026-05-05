@@ -80,3 +80,14 @@ func TestParseFile_EmptyKey(t *testing.T) {
 		t.Error("expected error for empty key, got nil")
 	}
 }
+
+func TestParseFile_EmptyFile(t *testing.T) {
+	path := writeTempEnv(t, "")
+	env, err := ParseFile(path)
+	if err != nil {
+		t.Fatalf("unexpected error for empty file: %v", err)
+	}
+	if len(env) != 0 {
+		t.Errorf("expected 0 keys for empty file, got %d", len(env))
+	}
+}
