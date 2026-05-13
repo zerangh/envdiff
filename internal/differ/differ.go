@@ -1,34 +1,42 @@
+// Package differ computes the difference between two parsed .env maps.
 package differ
 
-// Result holds the outcome of diffing two env file maps.
+import "github.com/user/envdiff/internal/parser"
+
+// Result holds the full diff output between two .env files.
 type Result struct {
-	// MissingInRight contains keys present in left but absent in right.
-	MissingInRight []string
 	// MissingInLeft contains keys present in right but absent in left.
 	MissingInLeft []string
-	// Mismatched contains keys present in both files but with different values.
+	// MissingInRight contains keys present in left but absent in right.
+	MissingInRight []string
+	// Mismatched contains keys present in both files but with differing values.
 	Mismatched []MismatchedKey
+	// LeftFile is the label/path of the left environment file.
+	LeftFile string
+	// RightFile is the label/path of the right environment file.
+	RightFile string
 }
 
-// MismatchedKey describes a key whose value differs between two env files.
+// MismatchedKey describes a single key whose value differs between environments.
 type MismatchedKey struct {
 	Key        string
 	LeftValue  string
 	RightValue string
 }
 
-// Diff compares two parsed env maps (key -> value) and returns a Result
-// describing any missing or mismatched keys.
-func Diff(left, right map[string]string) Result {
-	var result Result
+// Diff computes the difference between two parsed env maps.
+// leftLabel and rightLabel are used for display purposes in the result.
+func Diff(left, right map[string]string, leftLabel, rightLabel string) Result {
+	result := Result{
+		LeftFile:  leftLabel,
+		RightFile: rightLabel,
+	}
 
 	for k, lv := range left {
 		rv, ok := right[k]
 		if !ok {
 			result.MissingInRight = append(result.MissingInRight, k)
-			continue
-		}
-		if lv != rv {
+		} else if lv != rv {
 			result.Mismatched = append(result.Mismatched, MismatchedKey{
 				Key:        k,
 				LeftValue:  lv,
@@ -43,14 +51,22 @@ func Diff(left, right map[string]string) Result {
 		}
 	}
 
-	sortStrings(result.MissingInRight)
 	sortStrings(result.MissingInLeft)
+	sortStrings(result.MissingInRight)
 	sortMismatched(result.Mismatched)
 
 	return result
 }
 
-// HasDiff returns true when the Result contains any differences.
-func (r Result) HasDiff() bool {
-	return len(r.MissingInRight) > 0 || len(r.MissingInLeft) > 0 || len(r.Mismatched) > 0
+// DiffFiles parses both files and returns the diff result.
+func DiffFiles(leftPath, rightPath string) (Result, error) {
+	left, err := parser.ParseFile(leftPath)
+	if err != nil {
+		return Result{}, err
+	}
+	right, err := parser.ParseFile(rightPath)
+	if err != nil {
+		return Result{}, err
+	}
+	return Diff(left, right, leftPath, rightPath), nil
 }

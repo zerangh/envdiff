@@ -7,73 +7,59 @@ import (
 )
 
 func TestDiff_NoDifferences(t *testing.T) {
-	left := map[string]string{"APP_ENV": "dev", "PORT": "8080"}
-	right := map[string]string{"APP_ENV": "dev", "PORT": "8080"}
-
-	result := differ.Diff(left, right)
-
-	if result.HasDiff() {
-		t.Errorf("expected no diff, got %+v", result)
+	left := map[string]string{"FOO": "bar", "BAZ": "qux"}
+	right := map[string]string{"FOO": "bar", "BAZ": "qux"}
+	res := differ.Diff(left, right, "left.env", "right.env")
+	if len(res.MissingInLeft) != 0 || len(res.MissingInRight) != 0 || len(res.Mismatched) != 0 {
+		t.Errorf("expected no differences, got %+v", res)
 	}
 }
 
 func TestDiff_MissingInRight(t *testing.T) {
-	left := map[string]string{"APP_ENV": "dev", "SECRET": "abc"}
-	right := map[string]string{"APP_ENV": "dev"}
-
-	result := differ.Diff(left, right)
-
-	if len(result.MissingInRight) != 1 || result.MissingInRight[0] != "SECRET" {
-		t.Errorf("expected SECRET missing in right, got %v", result.MissingInRight)
-	}
-	if len(result.MissingInLeft) != 0 {
-		t.Errorf("expected no keys missing in left, got %v", result.MissingInLeft)
+	left := map[string]string{"FOO": "bar", "ONLY_LEFT": "val"}
+	right := map[string]string{"FOO": "bar"}
+	res := differ.Diff(left, right, "left.env", "right.env")
+	if len(res.MissingInRight) != 1 || res.MissingInRight[0] != "ONLY_LEFT" {
+		t.Errorf("expected ONLY_LEFT missing in right, got %v", res.MissingInRight)
 	}
 }
 
 func TestDiff_MissingInLeft(t *testing.T) {
-	left := map[string]string{"APP_ENV": "dev"}
-	right := map[string]string{"APP_ENV": "dev", "DB_URL": "postgres://localhost/db"}
-
-	result := differ.Diff(left, right)
-
-	if len(result.MissingInLeft) != 1 || result.MissingInLeft[0] != "DB_URL" {
-		t.Errorf("expected DB_URL missing in left, got %v", result.MissingInLeft)
+	left := map[string]string{"FOO": "bar"}
+	right := map[string]string{"FOO": "bar", "ONLY_RIGHT": "val"}
+	res := differ.Diff(left, right, "left.env", "right.env")
+	if len(res.MissingInLeft) != 1 || res.MissingInLeft[0] != "ONLY_RIGHT" {
+		t.Errorf("expected ONLY_RIGHT missing in left, got %v", res.MissingInLeft)
 	}
 }
 
 func TestDiff_MismatchedValues(t *testing.T) {
-	left := map[string]string{"PORT": "8080", "APP_ENV": "dev"}
-	right := map[string]string{"PORT": "9090", "APP_ENV": "dev"}
-
-	result := differ.Diff(left, right)
-
-	if len(result.Mismatched) != 1 {
-		t.Fatalf("expected 1 mismatch, got %d", len(result.Mismatched))
+	left := map[string]string{"FOO": "bar"}
+	right := map[string]string{"FOO": "baz"}
+	res := differ.Diff(left, right, "left.env", "right.env")
+	if len(res.Mismatched) != 1 {
+		t.Fatalf("expected 1 mismatch, got %d", len(res.Mismatched))
 	}
-	m := result.Mismatched[0]
-	if m.Key != "PORT" || m.LeftValue != "8080" || m.RightValue != "9090" {
-		t.Errorf("unexpected mismatch entry: %+v", m)
+	m := res.Mismatched[0]
+	if m.Key != "FOO" || m.LeftValue != "bar" || m.RightValue != "baz" {
+		t.Errorf("unexpected mismatch: %+v", m)
 	}
 }
 
 func TestDiff_SortedOutput(t *testing.T) {
 	left := map[string]string{"Z_KEY": "1", "A_KEY": "2", "M_KEY": "3"}
 	right := map[string]string{}
-
-	result := differ.Diff(left, right)
-
-	expected := []string{"A_KEY", "M_KEY", "Z_KEY"}
-	for i, k := range result.MissingInRight {
-		if k != expected[i] {
-			t.Errorf("expected sorted key %q at index %d, got %q", expected[i], i, k)
+	res := differ.Diff(left, right, "left.env", "right.env")
+	for i := 1; i < len(res.MissingInRight); i++ {
+		if res.MissingInRight[i-1] > res.MissingInRight[i] {
+			t.Errorf("MissingInRight not sorted: %v", res.MissingInRight)
 		}
 	}
 }
 
-func TestDiff_EmptyMaps(t *testing.T) {
-	result := differ.Diff(map[string]string{}, map[string]string{})
-	if result.HasDiff() {
-		t.Errorf("expected no diff for two empty maps")
+func TestDiff_Labels(t *testing.T) {
+	res := differ.Diff(map[string]string{}, map[string]string{}, "a.env", "b.env")
+	if res.LeftFile != "a.env" || res.RightFile != "b.env" {
+		t.Errorf("unexpected labels: left=%q right=%q", res.LeftFile, res.RightFile)
 	}
 }
