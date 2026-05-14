@@ -39,6 +39,19 @@ func TestCalculate_MissingKeys(t *testing.T) {
 	}
 }
 
+func TestCalculate_MissingKeysFromBothSides(t *testing.T) {
+	// Keys missing in right AND left should both contribute to the missing penalty.
+	result := makeResult([]string{"KEY_A"}, []string{"KEY_B"}, nil)
+	s := scorer.Calculate(result, scorer.Options{})
+	// 2 missing total * 10 = 20 penalty => score 80
+	if s.Total != 80 {
+		t.Errorf("expected 80, got %d", s.Total)
+	}
+	if s.MissingPenalty != 20 {
+		t.Errorf("expected missing penalty 20, got %d", s.MissingPenalty)
+	}
+}
+
 func TestCalculate_MismatchedValues(t *testing.T) {
 	mismatches := []differ.Mismatch{
 		{Key: "DB_HOST", LeftVal: "localhost", RightVal: "prod.db"},
