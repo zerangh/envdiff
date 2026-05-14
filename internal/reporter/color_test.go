@@ -73,6 +73,25 @@ func TestReportColor_Mismatched(t *testing.T) {
 	}
 }
 
+// TestReportColor_Combined verifies that a result containing all difference
+// types produces output with each corresponding section and color code.
+func TestReportColor_Combined(t *testing.T) {
+	var buf bytes.Buffer
+	reportColor(&buf, differ.Result{
+		MissingInRight: []string{"REMOVED_KEY"},
+		MissingInLeft:  []string{"ADDED_KEY"},
+		Mismatched: []differ.Mismatch{
+			{Key: "CHANGED_KEY", LeftValue: "old", RightValue: "new"},
+		},
+	})
+	out := buf.String()
+	for _, want := range []string{"MISSING IN RIGHT", "MISSING IN LEFT", "MISMATCH", "REMOVED_KEY", "ADDED_KEY", "CHANGED_KEY"} {
+		if !strings.Contains(out, want) {
+			t.Errorf("expected %q in combined output, got: %q", want, out)
+		}
+	}
+}
+
 func TestIsTerminal_Buffer(t *testing.T) {
 	var buf bytes.Buffer
 	if isTerminal(&buf) {
