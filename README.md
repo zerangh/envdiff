@@ -53,6 +53,7 @@ OK: 12 keys match across both files.
 | `--ignore-values` | Only check for missing keys, skip value comparison |
 | `--strict` | Exit with non-zero code if any differences are found |
 | `--format json` | Output results as JSON |
+| `--ignore KEY` | Exclude a specific key from comparison (repeatable) |
 
 ---
 
