@@ -1,36 +1,42 @@
-// Package differ computes the difference between two parsed .env maps.
+// Package differ compares two parsed .env maps and returns structured differences.
 package differ
 
-import "github.com/user/envdiff/internal/parser"
+import (
+	"fmt"
 
-// Result holds the full diff output between two .env files.
+	"github.com/yourorg/envdiff/internal/parser"
+)
+
+// Result holds the outcome of a diff between two .env files.
 type Result struct {
-	// MissingInLeft contains keys present in right but absent in left.
-	MissingInLeft []string
 	// MissingInRight contains keys present in left but absent in right.
 	MissingInRight []string
+	// MissingInLeft contains keys present in right but absent in left.
+	MissingInLeft []string
 	// Mismatched contains keys present in both files but with differing values.
 	Mismatched []MismatchedKey
-	// LeftFile is the label/path of the left environment file.
+	// LeftFile is the path of the left (reference) file.
 	LeftFile string
-	// RightFile is the label/path of the right environment file.
+	// RightFile is the path of the right (target) file.
 	RightFile string
+	// LeftEnv holds the full parsed contents of the left file.
+	LeftEnv map[string]string
+	// RightEnv holds the full parsed contents of the right file.
+	RightEnv map[string]string
 }
 
-// MismatchedKey describes a single key whose value differs between environments.
+// MismatchedKey represents a key whose value differs between two environments.
 type MismatchedKey struct {
 	Key        string
 	LeftValue  string
 	RightValue string
 }
 
-// Diff computes the difference between two parsed env maps.
-// leftLabel and rightLabel are used for display purposes in the result.
-func Diff(left, right map[string]string, leftLabel, rightLabel string) Result {
-	result := Result{
-		LeftFile:  leftLabel,
-		RightFile: rightLabel,
-	}
+// Diff compares two env maps and returns a Result describing their differences.
+func Diff(left, right map[string]string) Result {
+	var result Result
+	result.LeftEnv = left
+	result.RightEnv = right
 
 	for k, lv := range left {
 		rv, ok := right[k]
@@ -51,22 +57,25 @@ func Diff(left, right map[string]string, leftLabel, rightLabel string) Result {
 		}
 	}
 
-	sortStrings(result.MissingInLeft)
 	sortStrings(result.MissingInRight)
+	sortStrings(result.MissingInLeft)
 	sortMismatched(result.Mismatched)
 
 	return result
 }
 
-// DiffFiles parses both files and returns the diff result.
+// DiffFiles parses two .env files from disk and returns their diff Result.
 func DiffFiles(leftPath, rightPath string) (Result, error) {
 	left, err := parser.ParseFile(leftPath)
 	if err != nil {
-		return Result{}, err
+		return Result{}, fmt.Errorf("parsing left file %q: %w", leftPath, err)
 	}
 	right, err := parser.ParseFile(rightPath)
 	if err != nil {
-		return Result{}, err
+		return Result{}, fmt.Errorf("parsing right file %q: %w", rightPath, err)
 	}
-	return Diff(left, right, leftPath, rightPath), nil
+	res := Diff(left, right)
+	res.LeftFile = leftPath
+	res.RightFile = rightPath
+	return res, nil
 }

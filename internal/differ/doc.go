@@ -1,19 +1,21 @@
-// Package differ provides functionality for comparing two parsed .env file
-// maps and identifying discrepancies between them.
+// Package differ provides utilities for comparing two parsed .env maps.
 //
-// The primary entry point is Diff, which accepts two map[string]string values
-// (as produced by the parser package) and returns a Result describing:
+// Core diff functionality:
 //
-//   - Keys present in the left file but missing from the right.
-//   - Keys present in the right file but missing from the left.
-//   - Keys present in both files whose values differ.
+//	result := differ.Diff(leftMap, rightMap)
 //
-// Example usage:
+// File-based diffing:
 //
-//	left, _ := parser.ParseFile(".env.development")
-//	right, _ := parser.ParseFile(".env.production")
-//	result := differ.Diff(left, right)
-//	if result.HasDiff() {
-//		// handle differences
+//	result, err := differ.DiffFiles(".env.staging", ".env.production")
+//
+// Changelog generation:
+//
+// The Changelog type converts a diff Result into an ordered list of
+// ChangeEntry records, each tagged with a ChangeKind (added, removed,
+// mismatch) and a timestamp. This is useful for audit logs and export.
+//
+//	cl := differ.BuildChangelog(result)
+//	for _, entry := range cl.Entries {
+//		fmt.Printf("%s %s\n", entry.Kind, entry.Key)
 //	}
 package differ
