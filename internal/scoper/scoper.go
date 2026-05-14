@@ -35,6 +35,7 @@ func DefaultOptions() Options {
 // Extract partitions a differ.Result into named Scopes based on key prefixes.
 // Each unique first-segment prefix (split by "_") becomes its own scope.
 // Keys with no underscore are grouped under "default".
+// Keys that do not match the configured ScopePrefix are grouped under "other".
 func Extract(result differ.Result, opts Options) []Scope {
 	scopes := map[string]*Scope{}
 
@@ -64,6 +65,17 @@ func Extract(result differ.Result, opts Options) []Scope {
 		return out[i].Name < out[j].Name
 	})
 	return out
+}
+
+// Find returns the Scope with the given name from a slice of scopes, and a
+// boolean indicating whether it was found.
+func Find(scopes []Scope, name string) (Scope, bool) {
+	for _, sc := range scopes {
+		if sc.Name == name {
+			return sc, true
+		}
+	}
+	return Scope{}, false
 }
 
 func scopeName(key, prefix string) string {
