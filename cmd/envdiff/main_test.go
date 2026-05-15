@@ -59,3 +59,13 @@ func TestRun_CustomLabels(t *testing.T) {
 		t.Fatalf("expected no error with custom labels, got: %v", err)
 	}
 }
+
+func TestRun_InvalidFormat(t *testing.T) {
+	left := writeTempEnv(t, "FOO=bar\n")
+	right := writeTempEnv(t, "FOO=bar\n")
+
+	os.Args = []string{"envdiff", "-format", "xml", left, right}
+	if err := run(); err == nil {
+		t.Fatal("expected error for invalid format, got nil")
+	}
+}
