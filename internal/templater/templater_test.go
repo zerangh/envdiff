@@ -79,3 +79,23 @@ func TestMerge_FirstWins(t *testing.T) {
 		t.Errorf("expected 'first', got %q", result["KEY"])
 	}
 }
+
+func TestMerge_Empty(t *testing.T) {
+	result := templater.Merge([]map[string]string{})
+
+	if len(result) != 0 {
+		t.Errorf("expected empty map, got %d keys", len(result))
+	}
+}
+
+func TestMerge_SingleMap(t *testing.T) {
+	a := map[string]string{"FOO": "bar", "BAZ": "qux"}
+	result := templater.Merge([]map[string]string{a})
+
+	if len(result) != 2 {
+		t.Errorf("expected 2 keys, got %d", len(result))
+	}
+	if result["FOO"] != "bar" {
+		t.Errorf("expected 'bar', got %q", result["FOO"])
+	}
+}
