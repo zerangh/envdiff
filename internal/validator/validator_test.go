@@ -103,3 +103,22 @@ func TestValidate_Format_WithWarnings(t *testing.T) {
 		t.Errorf("expected warning count in output: %s", out)
 	}
 }
+
+func TestValidate_Format_MultipleWarnings(t *testing.T) {
+	res := validator.Result{
+		Warnings: []validator.Warning{
+			{Key: "FOO", Message: "left value is empty"},
+			{Key: "BAR", Message: "leading/trailing whitespace"},
+		},
+	}
+	out := res.Format()
+	if !strings.Contains(out, "FOO") {
+		t.Errorf("expected key FOO in output: %s", out)
+	}
+	if !strings.Contains(out, "BAR") {
+		t.Errorf("expected key BAR in output: %s", out)
+	}
+	if !strings.Contains(out, "2 validation warning") {
+		t.Errorf("expected warning count in output: %s", out)
+	}
+}
